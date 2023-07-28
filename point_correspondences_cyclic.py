@@ -99,13 +99,18 @@ for point in points:
     sidx = 14 * y + x
     # print(np.dot(features2,features1[sidx]).shape,np.sqrt(np.sum(features2**2,axis=1)).shape,np.sqrt(np.sum(features1[sidx]**2)).shape)
     # exit()
-    didx = np.argmax(np.dot(features2,features1[sidx])/np.sqrt(np.sum(features2**2,axis=1))/np.sqrt(np.sum(features1[sidx]**2)))
+    corresponence_scores = [] 
+    for didx in range(196):
+        corresponence_scores.append(
+            1-(softmax(np.dot(features2,features1[sidx])/np.sqrt(np.sum(features2**2,axis=1))/np.sqrt(np.sum(features1[sidx]**2))))[didx] * (softmax(np.dot(features1,features2[didx])/np.sqrt(np.sum(features1**2,axis=1))/np.sqrt(np.sum(features2[didx]**2)))[sidx])
+        )# didx = np.argmax(np.dot(features2,features1[sidx])/np.sqrt(np.sum(features2**2,axis=1))/np.sqrt(np.sum(features1[sidx]**2)))
     # ridx = 
+    didx = np.argsort(corresponence_scores)[0]
     dy = didx//14
     dx = didx % 14
     # print(np.int0((x * 16, y*16)).dtype,np.int0((224 + dx*16, dy*16)).dtype)
     # print(x, y, dy, dx)
     # print([int(x * 16), int(y*16)], [int(224 + dx*16), int(dy*16)])
-    cv2.line(img_stack,[int(x * 16), int(y*16)], [int(224 + dx*16), int(dy*16)], (0, 255,0),2)
+    cv2.line(img_stack,[int(x * 16 ), int(y*16 )], [int(224 + dx*16 + 8), int(dy*16 + 8)], (0, 255,0),2)
 cv2.imshow("image stack", img_stack)
 cv2.waitKey()

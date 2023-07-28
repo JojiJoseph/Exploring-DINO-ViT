@@ -7,8 +7,9 @@ import numpy as np
 import cv2
 
 url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
-# url = 'https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png'
+url = 'https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png'
 image = Image.open(requests.get(url, stream=True).raw)
+# image = Image.open("car1.jpg")
 
 # Load the pretrained dino model
 processor = ViTImageProcessor.from_pretrained('facebook/dino-vitb16')
@@ -22,7 +23,9 @@ def get_features_hook(module: nn.Module, inp, out):
     features = out[0][1:] # We don't the token corresponding to the [CLS] token
 
 # Attach hook to last layer of ViT encoder
-model.encoder.layer[-1].attention.attention.key.register_forward_hook(get_features_hook)
+# print(len(model.encoder.layer))
+# exit()
+model.encoder.layer[6].attention.attention.key.register_forward_hook(get_features_hook)
 
 # Pass input
 inputs = processor(images=image, return_tensors="pt")
