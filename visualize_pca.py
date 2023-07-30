@@ -1,11 +1,11 @@
 """
-pca_analysis.py
+visualize_pca.py
 
 This script performs PCA on the DINO ViT features and visualize.
 
 Usage:
-pca_analysis.py --url <url> [--layer <layer> --facet <key|query|value>]
-pca_analysis.py --image <path/to/image> [--layer <layer> --facet <key|query|value>]
+visualize_pca.py --url <url> [--layer <layer> --facet <key|query|value>]
+visualize_pca.py --image <path/to/image> [--layer <layer> --facet <key|query|value>]
 """
 
 from transformers import ViTImageProcessor, ViTModel
@@ -19,8 +19,8 @@ import torch
 import argparse
 
 usage = """
-pca_analysis.py --url <url> [--layer <layer> --facet <key|query|value>]
-pca_analysis.py --image <path/to/image> [--layer <layer> --facet <key|query|value>]
+visualize_pca.py --url <url> [--layer <layer> --facet <key|query|value>]
+visualize_pca.py --image <path/to/image> [--layer <layer> --facet <key|query|value>]
 
 if both path to local image and url are provided, image will be loaded from local
 """
