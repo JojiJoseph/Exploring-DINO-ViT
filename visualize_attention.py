@@ -82,6 +82,28 @@ for idx, attention_map in enumerate(attentions):
     cv2.imshow(f"Attention Map {idx}", img_out)
 cv2.waitKey()
 
+# attentions /= attentions.sum()
+attentions = attentions.reshape((12,-1))
+attentions /= attentions.sum(axis=1, keepdims=True)
+indices = np.argsort(attentions)
+
+sorted_attentions = np.sort(attentions, axis=1)
+cumsum = np.cumsum(sorted_attentions, axis=1)
+
+thresholded_attentions = cumsum > 0.5
+indices_back = np.argsort(indices, axis=1)
+for i in range(12):
+    thresholded_attentions[i] = thresholded_attentions[i][indices_back[i]]
+
+thresholded_attentions = thresholded_attentions.reshape((12, 14, 14))
+output_map = np.sum(thresholded_attentions, axis=0)
+output_map = (output_map - output_map.min()) / (output_map.max()-output_map.min())
+output_map = (np.clip(cv2.resize(output_map, img_in.shape[:-1][::-1]), 0, 1.0)*255).astype(np.uint8)
+cv2.imshow("output map", output_map)
+cv2.waitKey()
+
+
+
 # Following urls are for easy copy-paste
 # url = 'http://images.cocodataset.org/val2017/000000039769.jpg'
 # url = 'https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png'
