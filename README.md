@@ -12,6 +12,12 @@ To visualize pca
 python3 visualize_pca.py --url https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png
 ```
 
+To visualize attention
+
+```bash
+python3 visualize_attention.py --url https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png
+```
+
 To segment interactively, enter following on console and click somewhere in the image.
 
 ```bash
