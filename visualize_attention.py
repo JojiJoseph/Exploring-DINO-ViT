@@ -18,14 +18,8 @@ import cv2
 import torch
 import argparse
 
-usage = """
-visualize_attention.py --url <url> [--layer <layer> --facet <key|query|value>]
-visualize_attention.py --image <path/to/image> [--layer <layer> --facet <key|query|value>]
-
-if both path to local image and url are provided, image will be loaded from local
-"""
 parser = argparse.ArgumentParser(
-    description="Visualize PCA of features from the DINO ViT", usage=usage)
+    description="Visualize PCA of features from the DINO ViT")
 
 
 parser.add_argument("--url", type=str, default="https://upload.wikimedia.org/wikipedia/en/7/7d/Lenna_%28test_image%29.png",
@@ -39,9 +33,11 @@ args = parser.parse_args()
 
 if args.image:
     image = Image.open(args.image)
-else:
+elif args.url:
     url = args.url
     image = Image.open(requests.get(url, stream=True).raw)
+else:
+    raise ValueError("Either url or image must be provided")
 
 # Load the pretrained dino model
 processor = ViTImageProcessor.from_pretrained('facebook/dino-vitb16')
