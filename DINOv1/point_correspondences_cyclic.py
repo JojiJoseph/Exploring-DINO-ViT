@@ -12,8 +12,8 @@ url2 = 'https://raw.githubusercontent.com/ShirAmir/dino-vit-features/main/images
 image1 = Image.open(requests.get(url1, stream=True).raw)
 image2 = Image.open(requests.get(url2, stream=True).raw)
 
-image1 = Image.open("cat1.jpg")
-image2 = Image.open("cat2.jpg")
+image1 = Image.open("figures/cat1.jpg")
+image2 = Image.open("figures/cat2.jpg")
 
 
 # Load the pretrained dino model

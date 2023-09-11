@@ -12,17 +12,17 @@ url2 = 'https://raw.githubusercontent.com/ShirAmir/dino-vit-features/main/images
 # image1 = Image.open(requests.get(url1, stream=True).raw)
 # image2 = Image.open(requests.get(url2, stream=True).raw)
 
-image1 = Image.open('cat1.jpg')
-image2 = Image.open('cat2.jpg')
+image1 = Image.open('figures/cat1.jpg')
+image2 = Image.open('figures/cat2.jpg')
 
-image1 = Image.open('plane.jpeg')
-image2 = Image.open('bird.jpg')
+# image1 = Image.open('figures/plane.jpeg')
+# image2 = Image.open('figures/bird.jpg')
 
-image1 = Image.open('bag1.jpg')
-image2 = Image.open('bag3.jpg')
+# image1 = Image.open('figures/bag1.jpg')
+# image2 = Image.open('figures/bag3.jpg')
 
-image1 = Image.open('chimp.jpeg')
-image2 = Image.open('lena_test_image.png')
+# image1 = Image.open('figures/chimp.jpeg')
+# image2 = Image.open('figures/lena_test_image.png')
 
 image1 = image1.resize((224, 224))
 image2 = image2.resize((224, 224))
@@ -39,7 +39,7 @@ def get_features_hook(module: nn.Module, inp, out):
     global features
     features = out[0][1:] # We don't the token corresponding to the [CLS] token
 # Attach hook to last layer of ViT encoder
-handle = model.encoder.layer[-2].attention.attention.key.register_forward_hook(get_features_hook)
+handle = model.encoder.layer[-1].attention.attention.key.register_forward_hook(get_features_hook)
 
 # Pass input
 inputs = processor(images=image1, return_tensors="pt")
@@ -50,7 +50,7 @@ features1 = features.detach().cpu().numpy()
 handle.remove()
 
 # Attach hook to last layer of ViT encoder
-handle = model.encoder.layer[-2].attention.attention.key.register_forward_hook(get_features_hook)
+handle = model.encoder.layer[-1].attention.attention.key.register_forward_hook(get_features_hook)
 
 # Pass input
 inputs = processor(images=image2, return_tensors="pt")

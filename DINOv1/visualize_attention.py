@@ -83,7 +83,7 @@ for idx, attention_map in enumerate(attentions):
 cv2.waitKey()
 
 # attentions /= attentions.sum()
-attentions = attentions.reshape((12,-1))
+attentions = attentions.reshape((12, -1))
 attentions /= attentions.sum(axis=1, keepdims=True)
 indices = np.argsort(attentions)
 
@@ -97,11 +97,12 @@ for i in range(12):
 
 thresholded_attentions = thresholded_attentions.reshape((12, 14, 14))
 output_map = np.sum(thresholded_attentions, axis=0)
-output_map = (output_map - output_map.min()) / (output_map.max()-output_map.min())
-output_map = (np.clip(cv2.resize(output_map, img_in.shape[:-1][::-1]), 0, 1.0)*255).astype(np.uint8)
+output_map = (output_map - output_map.min()) / \
+    (output_map.max()-output_map.min())
+output_map = (np.clip(cv2.resize(
+    output_map, img_in.shape[:-1][::-1]), 0, 1.0)*255).astype(np.uint8)
 cv2.imshow("output map", output_map)
 cv2.waitKey()
-
 
 
 # Following urls are for easy copy-paste
