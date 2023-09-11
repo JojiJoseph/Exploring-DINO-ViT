@@ -6,6 +6,7 @@ This script performs PCA on the DINOv2 features and visualize.
 
 from PIL import Image
 import requests
+from scipy.datasets import face
 import torch.nn as nn
 from sklearn.decomposition import PCA
 import numpy as np
@@ -28,7 +29,13 @@ parser.add_argument("--image", type=str, default=None,
 parser.add_argument("--layer", type=int, default=11,
                     help="0 indexed attention layer number")
 parser.add_argument("--facet", type=str, default="key",
-                    help="one of key, query and value", choices=["key", "query", "value"])
+                    help="one of key, query and value", choices=["key", "query", "value", "all"])
+parser.add_argument("--resize-size", type=int, default=518,
+                    help="size to resize the image to, must be a multiple of 14")
+parser.add_argument("--invert-pca", action="store_true",
+                    help="invert the pca features")
+parser.add_argument("--remove-background",
+                    action="store_true", help="remove the background")
 
 args = parser.parse_args()
 
@@ -44,10 +51,14 @@ dino_model = torch.hub.load(
 layer = args.layer
 facet = args.facet
 
+resize_size = args.resize_size
+
+assert resize_size % 14 == 0, "resize size must be a multiple of 14"
+n_patches_side = resize_size // 14
 
 
 torch_transform = torchvision.transforms.Compose([
-    torchvision.transforms.Resize(224),
+    torchvision.transforms.Resize((resize_size, resize_size)),
     torchvision.transforms.ToTensor(),
     torchvision.transforms.Normalize(
         IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD)
@@ -58,8 +69,6 @@ image_torch = torch_transform(image)[None].to('cuda')
 features = None  # This global variable stores the patches
 
 # We use this hook to get intermediate features
-
-
 def get_features_hook(module: nn.Module, inp, out):
     global features
     print(out.shape)
@@ -81,21 +90,33 @@ elif facet == "query":
     features = features[:, 384:768]
 elif facet == "value":
     features = features[:, 768:]
+elif facet == "all":
+    pass  # Do nothing. Only for readability
 else:
     raise NotImplementedError(f"facet {facet} is not implemented")
 
 
 pca = PCA(n_components=3)
 pca_out = pca.fit_transform(features)
-# Convert flattened pca features to back to image
-pca_out = pca_out.reshape((16, 16, 3))
-pca_out = (pca_out - pca_out.min())/(pca_out.max()-pca_out.min())
 
+pca_out = pca_out.reshape((n_patches_side, n_patches_side, 3))
+
+if args.invert_pca:
+    pca_out = -pca_out
+if args.remove_background:
+    pca_out[pca_out[:, :, 0] < 0] = [0, 0, 0]
+    pca_out[pca_out < 0] = 0
+pca_out[:, :, 0] = (pca_out[..., 0] - pca_out[..., 0].min()) / \
+    (pca_out[..., 0].max()-pca_out[..., 0].min())
+pca_out[:, :, 1] = (pca_out[..., 1] - pca_out[..., 1].min()) / \
+    (pca_out[..., 1].max()-pca_out[..., 1].min())
+pca_out[:, :, 2] = (pca_out[..., 2] - pca_out[..., 2].min()) / \
+    (pca_out[..., 2].max()-pca_out[..., 2].min())
 
 img_in = np.asarray(image)
 
 pca_out = (np.clip(cv2.resize(
-    pca_out, img_in.shape[:-1][::-1]), 0, 1.0)*255).astype(np.uint8)
+    pca_out, img_in.shape[:-1][::-1], interpolation=cv2.INTER_NEAREST), 0, 1.0)*255).astype(np.uint8)
 img_out = cv2.addWeighted(img_in, 0.5, pca_out, 0.5, 1)
 
 cv2.namedWindow("input", cv2.WINDOW_NORMAL)
