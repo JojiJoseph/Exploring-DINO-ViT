@@ -89,9 +89,10 @@ cv2.setMouseCallback("Select some points and press space", on_mouse)
 while True:
     img_with_points = image1.copy()
     for point in points:
-        cv2.circle(img_with_points, point, 5, (0, 0, 255), -1)
+        cv2.circle(img_with_points, [point[0]+sw//32,point[1]+sh//32], 5, (0, 0, 255), -1)
     print(xind, yind)
-    cv2.circle(img_with_points, (xind,yind), 5, (0, 255, 0), -1)
+    cv2.circle(img_with_points, (xind+sw//32,yind+sh//32), 5, (0, 255, 0), -1)
+    cv2.rectangle(img_with_points, (xind, yind), (xind+sw//16, yind+sh//16), (0, 255, 0), 2)
     cv2.imshow("Select some points and press space", img_with_points)
     key = cv2.waitKey(10) & 0xFF
 
@@ -106,8 +107,7 @@ image2 = np.asarray(image2)
 image1_rescaled = cv2.resize(image1, (224, 224))
 image2_rescaled = cv2.resize(image2, (224, 224))
 img_stack = np.hstack([image1_rescaled, image2_rescaled])
-print(img_stack.shape)
-from scipy.special import softmax
+
 for point in points:
     x, y = point
     x = x * 16/sw
@@ -119,6 +119,7 @@ for point in points:
 
     dy = didx//16
     dx = didx % 16
-    cv2.line(img_stack,[int(x * 14), int(y*14)], [int(224 + dx*14), int(dy*14)], (0, 255,0),2)
+    cv2.line(img_stack,[int(x * 14 + 7), int(y*14 + 7)], [int(224 + dx*14 + 7), int(dy*14 + 7)], (0, 255,0),2)
+cv2.namedWindow("image stack", cv2.WINDOW_NORMAL)
 cv2.imshow("image stack", img_stack)
 cv2.waitKey()

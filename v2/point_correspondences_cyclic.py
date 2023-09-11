@@ -1,4 +1,3 @@
-from transformers import ViTImageProcessor, ViTModel
 from PIL import Image
 import requests
 import torch.nn as nn

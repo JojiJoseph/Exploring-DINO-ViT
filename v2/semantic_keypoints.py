@@ -69,7 +69,7 @@ with torch.no_grad():
 # outputs = model(**inputs)
 
 # Convert features to numpy array
-features1 = features.detach().cpu().numpy()
+features1 = features.cpu().numpy()
 handle.remove()
 
 # Attach hook to last layer of ViT encoder
@@ -83,29 +83,37 @@ handle = dino_model.blocks[-1].attn.qkv.register_forward_hook(
 with torch.no_grad():
     dino_model(image2_torch)
 # Convert features to numpy array
-features2 = features.detach().cpu().numpy()
+features2 = features.cpu().numpy()
 handle.remove()
 image1_rescaled = cv2.resize(np.asarray(image1), (224, 224))
 image2_rescaled = cv2.resize(np.asarray(image2), (224, 224))
 img_stack = np.hstack([image1_rescaled, image2_rescaled])
 
 
-dist = [0] * 256
+dist = [np.inf] * 256
 matchidx = [0] * 256
 from scipy.special import softmax
+
+# print(features1.shape, features2.shape)
+# exit()
 for sidx in range(256):
     didx = np.argmax(np.dot(features2,features1[sidx])/np.sqrt(np.sum(features2**2,axis=1))/np.sqrt(np.sum(features1[sidx]**2)))
     ridx = np.argmax(np.dot(features1,features2[didx])/np.sqrt(np.sum(features1**2,axis=1))/np.sqrt(np.sum(features2[didx]**2))) # reverse index
-    dist[sidx] = abs(ridx-sidx)
+    # dist[sidx] = abs(ridx-sidx)
+    # dist[sidx] = 1-(softmax(np.dot(features2,features1[sidx])/np.sqrt(np.sum(features2**2,axis=1))/np.sqrt(np.sum(features1[sidx]**2))))[didx] * (softmax(np.dot(features1,features2[didx])/np.sqrt(np.sum(features1**2,axis=1))/np.sqrt(np.sum(features2[didx]**2)))[sidx])
     if abs(ridx-sidx) == 0:
-        dist[sidx] = 1-(np.argmax(np.dot(features2,features1[sidx])/np.sqrt(np.sum(features2**2,axis=1))/np.sqrt(np.sum(features1[sidx]**2)))) * (np.argmax(np.dot(features1,features2[didx])/np.sqrt(np.sum(features1**2,axis=1))/np.sqrt(np.sum(features2[didx]**2))))
+        # dist[sidx] = 1-(np.argmax(np.dot(features2,features1[sidx])/np.sqrt(np.sum(features2**2,axis=1))/np.sqrt(np.sum(features1[sidx]**2)))) * (np.argmax(np.dot(features1,features2[didx])/np.sqrt(np.sum(features1**2,axis=1))/np.sqrt(np.sum(features2[didx]**2))))
         dist[sidx] = 1-(softmax(np.dot(features2,features1[sidx])/np.sqrt(np.sum(features2**2,axis=1))/np.sqrt(np.sum(features1[sidx]**2))))[didx] * (softmax(np.dot(features1,features2[didx])/np.sqrt(np.sum(features1**2,axis=1))/np.sqrt(np.sum(features2[didx]**2)))[sidx])
-    else:
-        dist[sidx] = 10000
+        # print(dist[sidx])
+        pass
+    # else:
+    #     dist[sidx] = 10000
     matchidx[sidx] = didx
 # print(dist)
 # exit()
 idx_array = np.argsort(dist)
+# print(np.array(dist)[idx_array])
+# exit()
 
 for i in range(10):
     y = idx_array[i] // 16
@@ -113,6 +121,8 @@ for i in range(10):
     y *= 14
     x *= 14
     # print(x, y)
+    if dist[idx_array[i]] > 1:
+        continue
     y2 = matchidx[idx_array[i]] // 16
     x2 = matchidx[idx_array[i]] % 16
     y2 *= 14

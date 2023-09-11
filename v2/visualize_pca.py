@@ -40,7 +40,7 @@ else:
 
 # Load the pretrained dino model
 dino_model = torch.hub.load(
-    'facebookresearch/dinov2', 'dinov2_vits14').to('cuda')
+    'facebookresearch/dinov2', 'dinov2_vitb14').to('cuda')
 layer = args.layer
 facet = args.facet
 
