@@ -5,7 +5,6 @@ This script performs PCA on the DINO ViT features and visualize.
 """
 
 from networkx import configuration_model
-from transformers import ViTImageProcessor, ViTModel, ViTConfig
 from PIL import Image
 import requests
 import torch.nn as nn
@@ -31,8 +30,8 @@ parser.add_argument("--image", type=str, default=None,
 parser.add_argument("--layer", type=int, default=11,
                     help="0 indexed attention layer number")
 parser.add_argument("--facet", type=str, default="key",
-                    help="one of key, query and value", choices=["key", "query", "value"])
-parser.add_argument("--resize-size", type=int, default=224,
+                    help="one of key, query and value", choices=["key", "query", "value", "all"])
+parser.add_argument("--resize-size", type=int, default=512,
                     help="size to resize the image to, must be a multiple of 16")
 parser.add_argument("--invert-pca", action="store_true",
                     help="invert the pca features")
@@ -49,23 +48,20 @@ else:
 
 # Load the pretrained dino model
 resize_size = args.resize_size
-assert resize_size == 224, "only 224 is supported for now"
+# assert resize_size == 224, "only 224 is supported for now"
 assert resize_size % 16 == 0, "resize size must be a multiple of 16"
 n_patches_side = resize_size // 16
 
-processor = ViTImageProcessor.from_pretrained('facebook/dino-vitb16')
+# processor = ViTImageProcessor.from_pretrained('facebook/dino-vitb16')
 torch_transform = torchvision.transforms.Compose([
     torchvision.transforms.Resize((resize_size, resize_size)),
     torchvision.transforms.ToTensor(),
     torchvision.transforms.Normalize(
         IMAGENET_DEFAULT_MEAN, IMAGENET_DEFAULT_STD)
 ])
-config = ViTConfig.from_pretrained('facebook/dino-vitb16')
-model = ViTModel.from_pretrained('facebook/dino-vitb16').cuda()
-# print(model.__dir__())
-# print(model.config)
-# model.config["image_size"] = resize_size
-# exit()
+
+model = torch.hub.load("facebookresearch/dino", "dino_vitb16").cuda()
+
 
 features = None  # This global variable stores the patches
 
@@ -78,25 +74,25 @@ def get_features_hook(module: nn.Module, inp, out):
 
 layer = args.layer
 facet = args.facet
+
+model.blocks[layer].attn.qkv.register_forward_hook(
+    get_features_hook)
+
+with torch.no_grad():
+    input = torch_transform(image)[None].to('cuda')
+    outputs = model(input)
+
 # Attach hook to the given of ViT encoder
 if facet == "key":
-    model.encoder.layer[layer].attention.attention.key.register_forward_hook(
-        get_features_hook)
+    features = features[:, 384:768]
 elif facet == "query":
-    model.encoder.layer[layer].attention.attention.query.register_forward_hook(
-        get_features_hook)
+    features = features[:, :384]
 elif facet == "value":
-    model.encoder.layer[layer].attention.attention.value.register_forward_hook(
-        get_features_hook)
+    features = features[:, 768:]
+elif facet == "all":
+    pass  # Do nothing. Only for readability
 else:
     raise NotImplementedError(f"facet {facet} is not implemented")
-
-# Pass input
-# inputs = processor(images=image, return_tensors="pt")
-# print(inputs.keys())
-# exit()
-with torch.no_grad():
-    outputs = model(pixel_values=torch_transform(image)[None].to('cuda'))
 
 # Convert features to numpy array for pca analysis
 features = features.cpu().numpy()
@@ -111,14 +107,20 @@ if args.invert_pca:
 if args.remove_background:
     pca_out[pca_out[:, :, 0] < 0] = [0, 0, 0]
     pca_out[pca_out < 0] = 0
+    pca_out_flatten = pca_out[:, :, 0].flatten()
+    pca_out = pca_out.reshape((-1, 3))
+    featuers_survived = features[pca_out_flatten > 0]
+    pca_new = PCA(n_components=3)
+    pca_out_new = pca_new.fit_transform(featuers_survived)
+    pca_out[pca_out_flatten > 0] = pca_out_new
+    pca_out[pca_out_flatten > 0] -= pca_out[pca_out_flatten > 0].min(axis=0)
+    pca_out = pca_out.reshape((n_patches_side, n_patches_side, 3))
 pca_out[:, :, 0] = (pca_out[..., 0] - pca_out[..., 0].min()) / \
     (pca_out[..., 0].max()-pca_out[..., 0].min())
 pca_out[:, :, 1] = (pca_out[..., 1] - pca_out[..., 1].min()) / \
     (pca_out[..., 1].max()-pca_out[..., 1].min())
 pca_out[:, :, 2] = (pca_out[..., 2] - pca_out[..., 2].min()) / \
     (pca_out[..., 2].max()-pca_out[..., 2].min())
-
-# pca_out = (pca_out - pca_out.min())/(pca_out.max()-pca_out.min())
 
 
 img_in = np.asarray(image)

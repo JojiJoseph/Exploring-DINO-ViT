@@ -69,9 +69,10 @@ image_torch = torch_transform(image)[None].to('cuda')
 features = None  # This global variable stores the patches
 
 # We use this hook to get intermediate features
+
+
 def get_features_hook(module: nn.Module, inp, out):
     global features
-    print(out.shape)
     # We don't the token corresponding to the [CLS] token
     features = out[0][1:]
 
@@ -85,9 +86,9 @@ with torch.no_grad():
 features = features.cpu().numpy()
 
 if facet == "key":
-    features = features[:, :384]
-elif facet == "query":
     features = features[:, 384:768]
+elif facet == "query":
+    features = features[:, :384]
 elif facet == "value":
     features = features[:, 768:]
 elif facet == "all":
@@ -106,14 +107,14 @@ if args.invert_pca:
 if args.remove_background:
     pca_out[pca_out[:, :, 0] < 0] = [0, 0, 0]
     pca_out[pca_out < 0] = 0
-    pca_out_flatten = pca_out[:,:,0].flatten()
+    pca_out_flatten = pca_out[:, :, 0].flatten()
     pca_out = pca_out.reshape((-1, 3))
-    featuers_survived = features[pca_out_flatten> 0]
+    featuers_survived = features[pca_out_flatten > 0]
     pca_new = PCA(n_components=3)
     pca_out_new = pca_new.fit_transform(featuers_survived)
-    print(pca_out.shape, pca_out_new.shape, pca_out_flatten.shape)
-    pca_out[pca_out_flatten> 0] = pca_out_new
-    pca_out[pca_out_flatten>0] -= pca_out[pca_out_flatten>0].min(axis=0)
+    # print(pca_out.shape, pca_out_new.shape, pca_out_flatten.shape)
+    pca_out[pca_out_flatten > 0] = pca_out_new
+    pca_out[pca_out_flatten > 0] -= pca_out[pca_out_flatten > 0].min(axis=0)
     pca_out = pca_out.reshape((n_patches_side, n_patches_side, 3))
 pca_out[:, :, 0] = (pca_out[..., 0] - pca_out[..., 0].min()) / \
     (pca_out[..., 0].max()-pca_out[..., 0].min())
