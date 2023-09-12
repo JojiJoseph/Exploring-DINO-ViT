@@ -106,6 +106,15 @@ if args.invert_pca:
 if args.remove_background:
     pca_out[pca_out[:, :, 0] < 0] = [0, 0, 0]
     pca_out[pca_out < 0] = 0
+    pca_out_flatten = pca_out[:,:,0].flatten()
+    pca_out = pca_out.reshape((-1, 3))
+    featuers_survived = features[pca_out_flatten> 0]
+    pca_new = PCA(n_components=3)
+    pca_out_new = pca_new.fit_transform(featuers_survived)
+    print(pca_out.shape, pca_out_new.shape, pca_out_flatten.shape)
+    pca_out[pca_out_flatten> 0] = pca_out_new
+    pca_out[pca_out_flatten>0] -= pca_out[pca_out_flatten>0].min(axis=0)
+    pca_out = pca_out.reshape((n_patches_side, n_patches_side, 3))
 pca_out[:, :, 0] = (pca_out[..., 0] - pca_out[..., 0].min()) / \
     (pca_out[..., 0].max()-pca_out[..., 0].min())
 pca_out[:, :, 1] = (pca_out[..., 1] - pca_out[..., 1].min()) / \
