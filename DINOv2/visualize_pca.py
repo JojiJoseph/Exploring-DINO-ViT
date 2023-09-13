@@ -85,12 +85,13 @@ with torch.no_grad():
 
 features = features.cpu().numpy()
 
+feature_dim = features.shape[-1] // 3
 if facet == "key":
-    features = features[:, 384:768]
+    features = features[:, feature_dim:2*feature_dim]
 elif facet == "query":
-    features = features[:, :384]
+    features = features[:, :feature_dim]
 elif facet == "value":
-    features = features[:, 768:]
+    features = features[:, 2*feature_dim:]
 elif facet == "all":
     pass  # Do nothing. Only for readability
 else:
