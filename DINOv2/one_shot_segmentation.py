@@ -107,8 +107,8 @@ if __name__ == "__main__":
     # image1 = Image.open("../figures/car1.jpg")
     # image2 = Image.open("../figures/car2.jpg")
 
-    image1 = Image.open("../figures/lena_test_image.png")
-    image2 = Image.open("../figures/chimp.jpeg")
+    # image1 = Image.open("../figures/lena_test_image.png")
+    # image2 = Image.open("../figures/chimp.jpeg")
 
     # Load the pretrained dino model
     dino_model = torch.hub.load(
@@ -253,6 +253,13 @@ if __name__ == "__main__":
     pca.fit(features)
     # features1 = pca.transform(features1)
     # features2 = pca.transform(features2)
+    import faiss
+    feature_dim = features.shape[-1]
+    index = faiss.IndexFlatIP()
+    features1 = features1 / np.sqrt(np.sum(features1**2, axis=-1, keepdims=True))
+    features2 = features2 / np.sqrt(np.sum(features2**2, axis=-1, keepdims=True))
+    
+
 
 
     for dest_patch in tqdm(range(n_side*n_side)):
@@ -288,7 +295,7 @@ if __name__ == "__main__":
         resize_size = image.shape[0]
         mask = cv2.resize(mask, (resize_size, resize_size),
                           interpolation=cv2.INTER_NEAREST)
-        output_mask = np.zeros_like(image, dtype=np.uint8)
+        output_mask = np.zeros((*image.shape[:2],3), dtype=np.uint8)
         for i in range(1, mask.shape[-1]):
             current_mask = mask[:, :, i].copy()
             pr_fgd_indices = current_mask > 0
@@ -320,8 +327,17 @@ if __name__ == "__main__":
             current_mask = np.ascontiguousarray(current_mask, dtype=np.uint8)
             output_mask[current_mask > 0] = COLORS[i]
         return output_mask
+    pca = PCA(n_components=128)
+    pca.fit(features2)
+    features2_image = pca.transform(features2)
+    features2_image = np.ascontiguousarray(features2_image.reshape((n_side, n_side, -1)))
+    print(features2_image.shape, features2_image.dtype)
+    features2_rescaled = cv2.resize(features2_image, (resize_size, resize_size))
+    print(features2_rescaled.shape, features2_image.dtype)
     mask_out_grabcut = get_grab_cut_mask(
         image2_rescaled, mask_out_grabcut, COLORS)
+    # mask_out_grabcut = get_grab_cut_mask(
+    #     features2_rescaled, mask_out_grabcut, COLORS)
 
     mask_out = cv2.resize(mask_out, (resize_size, resize_size),
                           interpolation=cv2.INTER_NEAREST)
