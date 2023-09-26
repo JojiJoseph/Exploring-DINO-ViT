@@ -1,6 +1,7 @@
 from collections import defaultdict
 from copy import deepcopy
 from itertools import product
+import time
 from typing import Tuple
 from tqdm import tqdm
 from transformers import ViTImageProcessor, ViTModel
@@ -253,27 +254,39 @@ if __name__ == "__main__":
     pca.fit(features)
     # features1 = pca.transform(features1)
     # features2 = pca.transform(features2)
-    import faiss
-    feature_dim = features.shape[-1]
-    index = faiss.IndexFlatIP()
     features1 = features1 / np.sqrt(np.sum(features1**2, axis=-1, keepdims=True))
     features2 = features2 / np.sqrt(np.sum(features2**2, axis=-1, keepdims=True))
     
 
 
+    patch_to_sidx = {}
+    for s_idx in range(len(segmentation_sets)):
+        for src_patch in segmentation_sets[s_idx]:
+            patch_to_sidx[src_patch[1]*n_side + src_patch[0]] = s_idx
+    import faiss
+    start_time = time.time()
+    cosine_idx = faiss.IndexFlatIP(features.shape[-1])
+    cosine_idx.add(features1)
 
     for dest_patch in tqdm(range(n_side*n_side)):
+        src_idx = cosine_idx.search(features2[dest_patch][None], 1)[1][0][0]
+        s_idx = patch_to_sidx[src_idx]
+        set_of_patch[dest_patch] = s_idx
 
-        similarity = -np.inf
-        for s_idx in range(len(segmentation_sets)):
-            for src_patch in segmentation_sets[s_idx]:
-                # print(src_patch)
-                if np.dot(features1[src_patch[1]*n_side + src_patch[0]], features2[dest_patch])/np.sqrt(np.sum(features1[src_patch[1]*n_side + src_patch[0]]**2))/np.sqrt(np.sum(features2[dest_patch]**2)) > similarity:
-                    similarity = np.dot(features1[src_patch[1]*n_side + src_patch[0]], features2[dest_patch])/np.sqrt(
-                        np.sum(features1[src_patch[1]*n_side + src_patch[0]]**2))/np.sqrt(np.sum(features2[dest_patch]**2))
-                    if similarity > 0.0:
-                        set_of_patch[dest_patch] = s_idx
 
+    # OLD code
+    # for dest_patch in tqdm(range(n_side*n_side)):
+        # similarity = -np.inf
+        # for s_idx in range(len(segmentation_sets)):
+        #     for src_patch in segmentation_sets[s_idx]:
+        #         # print(src_patch)
+        #         if np.dot(features1[src_patch[1]*n_side + src_patch[0]], features2[dest_patch]) > similarity:
+        #             similarity = np.dot(features1[src_patch[1]*n_side + src_patch[0]], features2[dest_patch])
+        #             if similarity > 0.0:
+        #                 set_of_patch[dest_patch] = s_idx
+
+    end_time = time.time()
+    print("Time taken for matching  = ", end_time - start_time)
 
     mask_in = cv2.resize(global_input_mask, (resize_size,
                          resize_size), interpolation=cv2.INTER_NEAREST)
