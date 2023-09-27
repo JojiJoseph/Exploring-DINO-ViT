@@ -5,15 +5,23 @@ import torch.nn as nn
 from sklearn.decomposition import PCA
 import numpy as np
 import cv2
+import argparse
 
-url1 = 'https://raw.githubusercontent.com/ShirAmir/dino-vit-features/main/images/cat.jpg'
-url2 = 'https://raw.githubusercontent.com/ShirAmir/dino-vit-features/main/images/ibex.jpg'
+parser = argparse.ArgumentParser(description='DINOv2 point correspondences')
+parser.add_argument('--image1', type=str, default='https://raw.githubusercontent.com/ShirAmir/dino-vit-features/main/images/cat.jpg',
+                    help='path to image 1')
+parser.add_argument('--image2', type=str,
+                    default='https://raw.githubusercontent.com/ShirAmir/dino-vit-features/main/images/ibex.jpg', help="path to image 2")
+args = parser.parse_args()
+if args.image1.startswith('http'):
+    image1 = Image.open(requests.get(args.image1, stream=True).raw)
+else:
+    image1 = Image.open(args.image1)
 
-image1 = Image.open(requests.get(url1, stream=True).raw)
-image2 = Image.open(requests.get(url2, stream=True).raw)
-
-image1 = Image.open("figures/cat1.jpg")
-image2 = Image.open("figures/cat2.jpg")
+if args.image2.startswith('http'):
+    image2 = Image.open(requests.get(args.image2, stream=True).raw)
+else:
+    image2 = Image.open(args.image2)
 
 
 # Load the pretrained dino model
